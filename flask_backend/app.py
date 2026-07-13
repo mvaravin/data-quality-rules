@@ -12,7 +12,7 @@ Python 3.11 + Flask + psycopg2 + PostgreSQL 14.
 import os
 from dotenv import load_dotenv
 
-# Загрузка .env перед импортом db (чтобы переменные были доступны)
+# .env до импорта db — чтобы PG_* уже были в окружении
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 from flask import Flask, request, jsonify
@@ -20,14 +20,8 @@ from flask_cors import CORS
 import db
 
 app = Flask(__name__)
-
-# CORS: разрешаем запросы с фронтенда (Vite dev server на 5000)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-
-# ============================================================
-# Middleware: обработка ошибок
-# ============================================================
 
 @app.errorhandler(400)
 def bad_request(e):
@@ -44,13 +38,9 @@ def internal_error(e):
     return jsonify({"status": "error", "message": "Внутренняя ошибка сервера"}), 500
 
 
-# ============================================================
-# API: Правила ФЛК
-# ============================================================
-
 @app.route("/api/v1/rules", methods=["GET"])
 def list_rules():
-    """GET /api/v1/rules — Список правил с фильтрами."""
+    """Список правил с фильтрами."""
     try:
         filters = {
             "owner_id": request.args.get("owner_id"),
@@ -58,7 +48,6 @@ def list_rules():
             "status": request.args.get("status"),
             "search": request.args.get("search"),
         }
-        # Убираем пустые фильтры
         filters = {k: v for k, v in filters.items() if v}
 
         rules = db.get_rules(filters if filters else None)
@@ -69,7 +58,7 @@ def list_rules():
 
 @app.route("/api/v1/rules/<int:rule_id>", methods=["GET"])
 def get_rule(rule_id):
-    """GET /api/v1/rules/<id> — Одно правило."""
+    """Одно правило по id."""
     try:
         rule = db.get_rule(rule_id)
         if rule is None:
@@ -81,22 +70,23 @@ def get_rule(rule_id):
 
 @app.route("/api/v1/rules", methods=["POST"])
 def save_rule():
-    """POST /api/v1/rules — UPSERT правила (INSERT / UPDATE)."""
+    """UPSERT правила."""
     try:
         data = request.get_json()
         if not data:
             return jsonify({"status": "error", "message": "Тело запроса пустое"}), 400
 
-        # Валидация обязательных полей
-        required = ["indicator", "incident_id", "incident_id_from_pm",
-                     "product_type", "product_name", "indicator_category",
-                     "check_type", "target_schema", "target_table",
-                     "evaluation", "passing_criteria"]
+        required = [
+            "indicator", "incident_id", "incident_id_from_pm",
+            "product_type", "product_name", "indicator_category",
+            "check_type", "target_schema", "target_table",
+            "evaluation", "passing_criteria",
+        ]
         missing = [f for f in required if not data.get(f)]
         if missing:
             return jsonify({
                 "status": "error",
-                "message": f"Не заполнены обязательные поля: {', '.join(missing)}"
+                "message": f"Не заполнены обязательные поля: {', '.join(missing)}",
             }), 400
 
         rule = db.upsert_rule(data)
@@ -107,7 +97,7 @@ def save_rule():
 
 @app.route("/api/v1/rules/<int:rule_id>", methods=["DELETE"])
 def delete_rule(rule_id):
-    """DELETE /api/v1/rules/<id> — Удаление правила."""
+    """Удаление правила."""
     try:
         deleted = db.delete_rule(rule_id)
         if not deleted:
@@ -119,7 +109,7 @@ def delete_rule(rule_id):
 
 @app.route("/api/v1/rules/test", methods=["POST"])
 def test_rule():
-    """POST /api/v1/rules/test — Тестовый прогон проверки."""
+    """Тестовый прогон проверки."""
     try:
         data = request.get_json()
         if not data:
@@ -131,13 +121,9 @@ def test_rule():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
-# ============================================================
-# API: Метаданные таблиц
-# ============================================================
-
 @app.route("/api/v1/metadata/tables", methods=["GET"])
 def metadata_tables():
-    """GET /api/v1/metadata/tables — Дерево схем/таблиц для sidebar."""
+    """Дерево схем/таблиц для sidebar."""
     try:
         metadata = db.get_table_metadata()
         return jsonify({"status": "success", "data": metadata})
@@ -145,13 +131,9 @@ def metadata_tables():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
-# ============================================================
-# Healthcheck
-# ============================================================
-
 @app.route("/api/health", methods=["GET"])
 def health():
-    """Проверка доступности API и БД."""
+    """Проверка API и БД."""
     try:
         from db import get_connection
         with get_connection() as conn:
@@ -159,12 +141,12 @@ def health():
                 cur.execute("SELECT 1")
         return jsonify({"status": "ok", "database": "connected"})
     except Exception as e:
-        return jsonify({"status": "error", "database": "disconnected", "message": str(e)}), 500
+        return jsonify({
+            "status": "error",
+            "database": "disconnected",
+            "message": str(e),
+        }), 500
 
-
-# ============================================================
-# Инициализация
-# ============================================================
 
 if __name__ == "__main__":
     print("[app] Applying DDL...")

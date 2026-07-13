@@ -63,9 +63,7 @@ def init_db():
     print("[db] DDL applied successfully")
 
 
-# ============================================================
-# CRUD операции для tech_flk_config_table
-# ============================================================
+# --- CRUD: tech_flk_config_table ---
 
 def get_rules(filters: dict = None) -> list:
     """Получение списка правил с фильтрами."""
