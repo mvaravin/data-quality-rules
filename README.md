@@ -88,7 +88,7 @@ Express находит Flask на 5001 и проксирует `/api/*`.
 ## Структура
 
 ```
-FLK/
+data-quality-rules/
 ├── client/src/pages/     # catalog, rule-edit
 ├── server/               # Express + in-memory fallback
 ├── flask_backend/        # Flask API, db.py, ddl.sql
