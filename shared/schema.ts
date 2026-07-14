@@ -2,7 +2,7 @@ import { pgTable, serial, varchar, text, boolean, real, timestamp, jsonb } from 
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// ===== Правило ФЛК (tech_flk_config_table) =====
+// Правило ФЛК (tech_flk_config_table)
 export const flkRules = pgTable("tech_flk_config_table", {
   id: serial("id").primaryKey(),
   indicator: varchar("indicator", { length: 255 }).notNull(),
@@ -43,7 +43,7 @@ export const flkRules = pgTable("tech_flk_config_table", {
   update_timestamp: timestamp("update_timestamp").defaultNow().notNull(),
 });
 
-// ===== Zod-схемы =====
+// Zod
 export const insertFlkRuleSchema = createInsertSchema(flkRules).omit({
   id: true,
   update_timestamp: true,
@@ -60,7 +60,7 @@ export type InsertFlkRule = z.infer<typeof insertFlkRuleSchema>;
 export type FlkRule = typeof flkRules.$inferSelect;
 export type RulePayload = z.infer<typeof rulePayloadSchema>;
 
-// ===== Метаданные таблиц (для sidebar) =====
+// Метаданные таблиц (sidebar)
 export interface TableMetadata {
   schema: string;
   tables: { name: string; columns: string[] }[];
